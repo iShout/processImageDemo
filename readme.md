@@ -1,3 +1,6 @@
+## 描述
+这是一个其他公司的笔试题。
+我觉得这个demo很不错，所以以后可以持续更新代码的重构过程
 ## 说明
 * 因为使用Module时，`<script type="module">`  会出现跨域问题，所以只能在项目中安装live-server插件，在本机端口起一个服务器启动项目。启动命令`npm run dev`
 * 后端采用express，启动命令`npm run server`
