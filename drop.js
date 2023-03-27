@@ -1,8 +1,4 @@
-import {
-  imageContainer,
-  uploadImageObj,
-  updateImage,
-} from "./variables.js";
+import { imageContainer, uploadImageObj, updateImage } from "./variables.js";
 
 //拖拽图片功能，只支持.png, .jpeg, .jpg
 const initDrop = function () {
@@ -29,8 +25,13 @@ const initDrop = function () {
       const reader = new FileReader();
       reader.readAsDataURL(image);
       reader.onload = function () {
-        const oldNode = imageContainer.children[0]
-        updateImage(reader.result)
+        // 初始化
+        uploadImageObj.setImage(null);
+        observerEvent.notice("buttonDisabled", uploadImageObj.getImage());
+        observerEvent.notice("zipButtonDisabled", null);
+        observerEvent.notice("decompressBtnDisabled", null);
+        
+        updateImage(reader.result);
         observerEvent.notice("buttonDisabled", uploadImageObj.getImage());
       };
     } else {

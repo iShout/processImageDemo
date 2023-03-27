@@ -14,12 +14,14 @@ import {
   downloadPic,
   zipImage,
   compressImage,
+  decompressImageBtn,
+  decompressImage,
 } from "./variables.js";
 
 import ObserverEvent from "./observer.js";
 
 import { initDrop } from "./drop.js";
-import showMessage from './message.js'
+import showMessage from "./message.js";
 import ajaxRequest from "./httpRequest.js";
 
 window.observerEvent = new ObserverEvent();
@@ -33,10 +35,10 @@ upload.addEventListener("click", () => {
 //预览文件按钮设定click回调
 previewBtn.addEventListener("click", () => {
   const image = uploadImageObj.getImage();
-  // const base64 = image.split(",")[1];
-  const base64 = image;
+  const base64 = image.split(",")[1];
+  // const base64 = image;
   copyToClipboard.loading(base64).then(() => {
-    showMessage("已复制base64到剪切板")
+    showMessage("已复制base64到剪切板");
     putBase64InDiv(base64);
     observerEvent.notice("zipButtonDisabled", "copied");
   });
@@ -52,14 +54,23 @@ downloadBtn.addEventListener("click", () => {
 zipImage.addEventListener("click", () => {
   navigator.clipboard.readText().then((value) => {
     compressImage(value).then((base64) => {
-      ajaxRequest.loading('saveImage','post',base64).then(res => {
-        showMessage(`后端返回的hash值为：${res}`)
-        putBase64InDiv(`后端返回的hash值为：${res}`);
-      }).catch(error => {
-        showMessage('上传文件出错','error')
-      })
+      ajaxRequest
+        .loading("saveImage", "post", base64)
+        .then((res) => {
+          showMessage(`后端返回的hash值为：${res}`);
+          putBase64InDiv(`后端返回的hash值为：${res}`);
+          observerEvent.notice("decompressBtnDisabled", "compressed");
+        })
+        .catch((error) => {
+          showMessage("上传文件出错", "error");
+        });
     });
   });
+});
+//还原图片按钮设定click回调
+decompressImageBtn.addEventListener("click", () => {
+  const currentImageBase64 = uploadImageObj.getImage().split(",")[1];
+  decompressImage(currentImageBase64);
 });
 
 /**
@@ -71,6 +82,12 @@ function handleFile(event) {
     const reader = new FileReader();
     reader.readAsDataURL(image);
     reader.onload = function () {
+      // 初始化
+      uploadImageObj.setImage(null)
+      observerEvent.notice("buttonDisabled", uploadImageObj.getImage());
+      observerEvent.notice("zipButtonDisabled", null);
+      observerEvent.notice("decompressBtnDisabled", null);
+      
       updateImage(reader.result);
       observerEvent.notice("buttonDisabled", uploadImageObj.getImage());
     };
@@ -95,7 +112,7 @@ observerEvent.addDepend("buttonDisabled", (value) => {
   }
 });
 
-//订阅‘zipButtonDisabled’事件
+// 订阅‘zipButtonDisabled’事件
 observerEvent.addDepend("zipButtonDisabled", (value) => {
   if (value === "copied") {
     zipImage.disabled = false;
@@ -103,8 +120,16 @@ observerEvent.addDepend("zipButtonDisabled", (value) => {
     zipImage.disabled = true;
   }
 });
+// 订阅‘decompressBtnDisabled’事件
+observerEvent.addDepend("decompressBtnDisabled", (value) => {
+  if (value === "compressed") {
+    decompressImageBtn.disabled = false;
+  } else {
+    decompressImageBtn.disabled = true;
+  }
+});
 
-//订阅‘updateImage事件’
+// 订阅‘updateImage事件’
 observerEvent.addDepend("updateImage", (value) => {
   const node = imageContainer.children[0];
   node.src = value;
@@ -113,3 +138,4 @@ observerEvent.addDepend("updateImage", (value) => {
 // 初始状态下，先发布一个通知来禁用按钮
 observerEvent.notice("buttonDisabled", uploadImageObj.getImage());
 observerEvent.notice("zipButtonDisabled", null);
+observerEvent.notice("decompressBtnDisabled", null);

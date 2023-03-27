@@ -1,5 +1,9 @@
 import getSingle from "./singleton.js";
 import showMessage from "./message.js";
+import {
+  compressBase64,
+  decompressBase64,
+} from "./imageProcess.js";
 
 // 一些通用变量的定义
 const imageContainer = document.getElementById("image");
@@ -11,6 +15,7 @@ const loader = document.getElementById("loader");
 const textContainer = document.getElementById("text-container");
 const downloadPic = document.getElementById("download-pic");
 const zipImage = document.getElementById("zip-image");
+const decompressImageBtn = document.getElementById("decompress-image");
 /**
  * @description 封装上传图片对象
  */
@@ -78,7 +83,7 @@ Function.prototype.loading = async function (...args) {
   loader.style.display = "block";
   const res = await this.apply(null, Array.from(args));
   loader.style.display = "none";
-  return res
+  return res;
 };
 
 /**
@@ -131,47 +136,56 @@ const putBase64InDiv = function (base64) {
  * @description 压缩图片
  * @param {string} base64 原图的base64编码
  */
-const compressImage = function (base64, multiple = 0.6) {
-  const length = base64.length / 1024;
-  let newImage = new Image();
-  let quality = 0.6; // 压缩系数0-1之间
-  newImage.src = base64;
-  let imgWidth, imgHeight;
-  let w = undefined;
-  newImage.onload = function () {
-    // 这里面的 this 指向 newImage
-    // 通过改变图片宽高来实现压缩
-    w = this.width * multiple;
-    imgWidth = this.width;
-    imgHeight = this.height;
-    let canvas = document.createElement("canvas");
-    let ctx = canvas.getContext("2d");
-    if (Math.max(imgWidth, imgHeight) > w) {
-      if (imgWidth > imgHeight) {
-        canvas.width = w;
-        // 等比例缩小
-        canvas.height = w * (imgHeight / imgWidth);
-      } else {
-        canvas.height = w;
-        // 等比例缩小
-        canvas.width = w * (imgWidth / imgHeight);
-      }
-    } else {
-      canvas.width = imgWidth;
-      canvas.height = imgHeight;
-      // quality 设置转换为base64编码后图片的质量，取值范围为0-1  没什么压缩效果
-      // 还是得通过设置 canvas 的宽高来压缩
-      quality = 0.6;
-    }
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    ctx.drawImage(this, 0, 0, canvas.width, canvas.height); //  // 这里面的 this 指向 newImage
-    let smallBase64 = canvas.toDataURL("image/png", quality); // 压缩语句
-    uploadImageObj.setImage(smallBase64);
-    console.log('图片已压缩');
-    showMessage('图片已压缩');
+const compressImage = function (base64) {
+  const image = new Image();
+  image.src = `data:image/png;base64,${base64}`;
+  image.onload = function () {
+    const canvas = document.createElement("canvas");
+    const ctx = canvas.getContext("2d");
+    const width = image.width / 2; // 将图片压缩一半
+    const height = image.height / 2;
+
+    canvas.width = width;
+    canvas.height = height;
+
+    ctx.drawImage(image, 0, 0, width, height);
+
+    const imageData = canvas.toDataURL("image/png");
+
+    const compressedData = compressBase64(imageData, width);
+    // 将压缩后的图片设置到预览位
+    uploadImageObj.setImage(compressedData);
     observerEvent.notice("updateImage", uploadImageObj.getImage());
   };
-  return Promise.resolve(uploadImageObj.getImage())
+  return Promise.resolve(uploadImageObj.getImage());
+};
+/**
+ * @description 还原被压缩的图片
+ * @param {string} base64 还原前图片的base64格式
+ */
+const decompressImage = function (base64) {
+  const image = new Image();
+  image.src = `data:image/png;base64,${base64}`;
+  image.onload = function () {
+    const canvas = document.createElement("canvas");
+    const ctx = canvas.getContext("2d");
+    const width = image.width;
+    const height = image.height;
+
+    canvas.width = width;
+    canvas.height = height;
+
+    ctx.drawImage(image, 0, 0, width, height);
+
+    const imageData = canvas.toDataURL();
+
+    const compressedData = decompressBase64(imageData.split(',')[1], width);
+    console.log("还原前：",base64.length,"还原后：",compressedData.length);
+    console.log(compressedData);
+    // // 将压缩后的图片设置到预览位
+    uploadImageObj.setImage(`data:image/png;base64,${compressedData}`);
+    observerEvent.notice("updateImage", uploadImageObj.getImage());
+  };
 };
 
 export {
@@ -188,5 +202,7 @@ export {
   putBase64InDiv,
   downloadPic,
   zipImage,
+  decompressImageBtn,
   compressImage,
+  decompressImage,
 };

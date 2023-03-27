@@ -35,4 +35,6 @@
 
 >`httpRequest.js` -- ajax封装
 
+>`imageProcess.js` -- 对图像的压缩还原处理方法
+
 >`runOnServer.js` -- 使用`live-server`插件使得项目可以在本机端口上启动，为了解决module开发跨域问题。
